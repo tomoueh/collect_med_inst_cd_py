@@ -98,7 +98,7 @@ class MedInstCdCrawler:
                 if zip_cd:
                     pref_cd = self._pref_finder.find_prefecture_cd(zip_cd)
                     if pref_cd:
-                        med_l = [[f"{pref_cd:0>2}1{item[0]}"]+item for item in med_l]
+                        med_l = [[f"{pref_cd:0>2}{item[0]}"]+item for item in med_l]
                         break
 
                 retry -= 1
