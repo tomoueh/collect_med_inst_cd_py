@@ -4,7 +4,6 @@ from typing import Callable
 import logging
 import os
 import re
-import csv
 import zipfile
 import shutil
 from urllib.parse import urljoin
@@ -14,6 +13,7 @@ from .consts import BRANCH_ALL, BRANCH_LIST, BRANCH_KYUSYU
 from .web_parser import BranchWebpageParser
 from .excel_parser import ExcelParser
 from .prefecture_finder import PrefectureFinder
+from .output_csv_handler import OutputCsvHandler
 
 class MedInstCdCrawler:
     """
@@ -25,6 +25,7 @@ class MedInstCdCrawler:
         self._web_parser = BranchWebpageParser()
         self._excel_parser = ExcelParser()
         self._pref_finder = PrefectureFinder()
+        self._csv_handler = OutputCsvHandler()
 
         # 九州のzipは医科、歯科、薬局のxlsxがbundle. 医科のみを対象
         self._zipfile_filter = {BRANCH_KYUSYU: re.compile(r'.+_ika_.*[xls|xlsx]$')}
@@ -43,15 +44,19 @@ class MedInstCdCrawler:
         """
 
         output_file = "all_med_inst_cd.csv" if branch_id == BRANCH_ALL else f"{branch_id}_med_inst_cd.csv"
-        self._clear_output_file(out_dir, output_file)
+        self._csv_handler.clear_output_file(out_dir, output_file)
 
         self._fetch_med_inst_cd(branch_id, './tmp_data', self._output_med_list_from_file, out_dir, output_file)
 
     def _fetch_med_inst_cd(self, branch_id: int, dl_dir: str, output_handler: Callable[[int, int, str, str, str], None], out_dir: str, output_file: str):
+        """
+        Download files from each kouseikyoku.mhlw.go.jp sites and sum them up to csv.
+        """
 
         if branch_id == BRANCH_ALL:
             for b_id in BRANCH_LIST:
                 self._logger.debug(f"..branch-{b_id} begin")
+                # call this recursively
                 self._fetch_med_inst_cd(b_id, dl_dir, output_handler, out_dir, output_file)
         else:
             file_urls = self._web_parser.extract_file_urls(branch_id)
@@ -70,18 +75,19 @@ class MedInstCdCrawler:
 
         if re.match(r'.+zip$', file_path):
             unzip_dir = self._zip_extract(file_path)
+            # specified pattern or excel pattern
             re_patt = self._zipfile_filter[branch_id] if branch_id in self._zipfile_filter else re_patt_excel
             for f in os.listdir(unzip_dir):
                 f_path = os.path.join(unzip_dir, f)
                 if os.path.isfile(f_path) and re_patt.match(f):
                     med_l = self._parse_file(branch_id, f_path)
                     if med_l:
-                        self._output_csv_append(out_dir, output_file, med_l)
+                        self._csv_handler.output_csv_append(out_dir, output_file, med_l)
 
         elif re_patt_excel.match(file_path):
             med_l = self._parse_file(branch_id, file_path)
             if med_l:
-                self._output_csv_append(out_dir, output_file, med_l)
+                self._csv_handler.output_csv_append(out_dir, output_file, med_l)
 
     def _parse_file(self, branch_id: int, file_path: str) -> list:
         """
@@ -110,23 +116,6 @@ class MedInstCdCrawler:
 
         return med_l
 
-    # def _clear_output_dir_of(self, branch_id: int, out_dir: str):
-    #     if not os.path.exists(out_dir):
-    #         return
-
-    #     for f in os.listdir(out_dir):
-    #         f_path = os.path.join(out_dir, f)
-    #         if os.path.isfile(f_path) and re.match(r'^'+str(branch_id)+r'_[.\w]+$', f):
-    #             os.remove(f_path)
-
-    def _clear_output_file(self, out_dir: str, single_file: str):
-        if not os.path.exists(out_dir):
-            return
-
-        f_path = os.path.join(out_dir, single_file)
-        if os.path.exists(f_path):
-            os.remove(f_path)
-
     def _download_to(self, url: str, dl_dir: str) -> str:
 
         if not os.path.exists(dl_dir):
@@ -143,11 +132,12 @@ class MedInstCdCrawler:
                 if chunk:
                     f.write(chunk)
                     f.flush()
-            return savepath
 
-        return ''
+        return savepath
 
     def _zip_extract(self, zipfile_path: str) -> str:
+
+        # file名をdirに
         unzip_dir = os.path.join(os.path.dirname(zipfile_path), os.path.splitext(os.path.basename(zipfile_path))[0])
         if os.path.exists(unzip_dir):
             shutil.rmtree(unzip_dir)
@@ -165,32 +155,3 @@ class MedInstCdCrawler:
                         counter += 1
                     zfile.extract(info, unzip_dir)
         return unzip_dir
-
-    def _output_csv(self, out_dir: str, filename: str, med_list: list) -> str:
-        if not med_list:
-            return ''
-
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
-
-        file_path = os.path.join(out_dir, filename)
-        with open(file_path, 'w', encoding="utf-8") as f:
-            writer = csv.writer(f, lineterminator='\n')
-            writer.writerows(med_list)
-
-        self._logger.debug(f"output csv: {file_path}")
-        return file_path
-
-    def _output_csv_append(self, out_dir: str, filename: str, med_list: list) -> str:
-        if not med_list:
-            return ''
-
-        if not os.path.exists(out_dir):
-            os.mkdir(out_dir)
-
-        file_path = os.path.join(out_dir, filename)
-        with open(file_path, 'a', encoding="utf-8") as f:
-            writer = csv.writer(f, lineterminator='\n')
-            writer.writerows(med_list)
-
-        return file_path
