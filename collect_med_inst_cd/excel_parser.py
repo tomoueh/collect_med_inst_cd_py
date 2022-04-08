@@ -17,10 +17,11 @@ class ExcelParser:
         Parse the excel file and get med_inst_cd list
         """
 
-        if branch_id in (BRANCH_KYUSYU):
-            setting = {'col_no': 2, 'col_med_cd': 6, 'col_inst_name': 10, 'col_address': 15}
-        else:
-            setting = {'col_no': 0, 'col_med_cd': 1, 'col_inst_name': 2, 'col_address': 3}
+        setting = {'col_no': 0, 'col_med_cd': 1, 'col_inst_name': 2, 'col_address': 3}
+        # if branch_id in (BRANCH_KYUSYU):
+        #     setting = {'col_no': 2, 'col_med_cd': 6, 'col_inst_name': 10, 'col_address': 15}
+        # else:
+        #     setting = {'col_no': 0, 'col_med_cd': 1, 'col_inst_name': 2, 'col_address': 3}
 
         _, ext = os.path.splitext(file_path)
         parser = ExcelParserXlsx(setting) if ext.lower() == ".xlsx" else ExcelParserXls(setting)
