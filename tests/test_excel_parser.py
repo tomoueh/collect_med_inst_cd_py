@@ -9,7 +9,7 @@ class TestExcelParser(unittest.TestCase):
 
     def test_parse_hokaido(self):
         parser = ExcelParser()
-        excel_f = r".\tmp_data\000154564.xlsx"
+        excel_f = r".\tmp_data\000213687.xlsx"
         parser.parse(BRANCH_HOKAIDO, excel_f)
 
     def test_parse_shikoku(self):
