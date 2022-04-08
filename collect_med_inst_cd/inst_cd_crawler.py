@@ -151,6 +151,10 @@ class MedInstCdCrawler:
                         # ファイル名が全角記号、全角スペース含まれてたりする、予測不可能.置き換えちゃう
                         # info.filename = info.filename.encode('cp437').decode('cp932')
                         _, ext = os.path.splitext(info.filename)
+                        if not ext:
+                            # extが文字化けファイル名から取得できないケースがあったので,,
+                            splited = info.filename.split('.')
+                            ext = f".{splited[-1]}"
                         info.filename = f"dl_{counter}{ext}"
                         counter += 1
                     zfile.extract(info, unzip_dir)

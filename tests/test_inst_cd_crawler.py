@@ -11,14 +11,23 @@ class TestMedInstCdCrawler(unittest.TestCase):
         crawler = MedInstCdCrawler()
         crawler.run(BRANCH_ALL)
 
-    def test_run_cyugoku(self):
+    def test_run_one(self):
         crawler = MedInstCdCrawler()
-        crawler.run(BRANCH_CYUGOKU)
+        # crawler.run(BRANCH_TOHOKU)
+        # crawler.run(BRANCH_KANTO_SINETU)
+        # crawler.run(BRANCH_SHIKOKU)
+        # crawler.run(BRANCH_CYUGOKU)
+        crawler.run(BRANCH_KYUSYU)
+
+    def test_run_each(self):
+        crawler = MedInstCdCrawler()
+        for b_id in BRANCH_LIST:
+            crawler.run(b_id)
 
     def test_zip_extract(self):
         crawler = MedInstCdCrawler()
         # zip_f = r".\tmp_data\ze_sitei_ika_R0207.zip"
-        zip_f = r".\tmp_data\r2_07_fukuoka.zip"
+        zip_f = r".\tmp_data\000236407.zip"
         crawler._zip_extract(zip_f)
 
     def setUp(self):
