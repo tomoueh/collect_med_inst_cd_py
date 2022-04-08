@@ -9,6 +9,14 @@ class TestBranchWebpageParser(unittest.TestCase):
         parser = BranchWebpageParser()
         urls = parser.extract_file_urls(BRANCH_TOKAI_HOKURIKU)
 
+    def test_parse_shikoku(self):
+        parser = BranchWebpageParser()
+        urls = parser.extract_file_urls(BRANCH_SHIKOKU)
+
+    def test_parse_kyusyu(self):
+        parser = BranchWebpageParser()
+        urls = parser.extract_file_urls(BRANCH_KYUSYU)
+
     def setUp(self):
 
         self._logger = logging.getLogger(__name__)

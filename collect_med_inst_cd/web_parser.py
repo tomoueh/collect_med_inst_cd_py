@@ -46,12 +46,12 @@ class BranchWebpageParser:
                            None, ("th", "医科"), href_zip_patt, None),
             # 四国: table.class="datatable", 医科row - each_col=県(excel)
             BRANCH_SHIKOKU: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/shikoku/gyomu/gyomu/hoken_kikan/shitei/index.html",
-                             {"class": "datatable"}, ("th", "医科"), href_excel_patt, None),
+                             {"class": "datatable"}, ("th", "医科"), href_zip_patt, None),
             # 中国: table.class="datatable", thなし, each_col=県,last_col=All県bundle(zip,a_text='医科')
             BRANCH_CYUGOKU: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/chugokushikoku/chousaka/iryoukikanshitei.html",
                              {"class": "datatable"}, None, href_zip_patt, re.compile(r'^医科.*')),
             # 九州: table.class="datatable", each_td=県(zip.mix)
-            BRANCH_KYUSYU: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/kyushu/gyomu/gyomu/hoken_kikan/index.html",
+            BRANCH_KYUSYU: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/kyushu/gyomu/gyomu/hoken_kikan/index_00006.html",
                             {"class": "datatable"}, None, href_zip_patt, None)
         }
 
