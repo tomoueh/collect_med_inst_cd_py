@@ -8,11 +8,16 @@ class PrefectureFinder:
 
     def __init__(self):
         self._logger = logging.getLogger(__name__)
+        self._cache = {}
 
     def find_prefecture_cd(self, zip_cd: str) -> str:
         """
         Get the prefecture cd of Japan with zip_cd
         """
+
+        pref_cd = self._cache.get(zip_cd)
+        if pref_cd:
+            return pref_cd
 
         # http://zipcloud.ibsnet.co.jp/doc/api
         url = "https://zipcloud.ibsnet.co.jp/api/search"
@@ -28,6 +33,7 @@ class PrefectureFinder:
                     if addr_l:
                         pref_cd = addr_l[0].get('prefcode')
                         self._logger.debug(f"found pref_cd={pref_cd}")
+                        self._cache[zip_cd] = pref_cd
                         return pref_cd
                     else:
                         self._logger.warn(f"NOT found pref_cd: zip_cd={zip_cd}")
