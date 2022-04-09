@@ -11,12 +11,12 @@ class TestMedInstCdCrawler(unittest.TestCase):
         crawler = MedInstCdCrawler()
         crawler.run(BRANCH_ALL)
 
-    def test_run_one(self):
+    def test_run_singleone(self):
         crawler = MedInstCdCrawler()
         # crawler.run(BRANCH_TOHOKU)
         # crawler.run(BRANCH_KANTO_SINETU)
-        # crawler.run(BRANCH_SHIKOKU)
         # crawler.run(BRANCH_CYUGOKU)
+        # crawler.run(BRANCH_SHIKOKU)
         crawler.run(BRANCH_KYUSYU)
 
     def test_run_each(self):

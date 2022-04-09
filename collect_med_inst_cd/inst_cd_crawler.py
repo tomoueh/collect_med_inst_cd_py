@@ -96,7 +96,8 @@ class MedInstCdCrawler:
 
         med_l = self._excel_parser.parse(branch_id, file_path)
         if med_l:
-            # use first valid zip_cd
+            # Add med_inst_cd(9 digit) with prefecture-cd using first valid zip_cd
+            # Must be one file for one prefecture.
             pref_cd = ''
             retry = 8
             for med_item in med_l:
