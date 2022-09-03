@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-
 import argparse
 import logging
+
 from collect_med_inst_cd.consts import BRANCH_ALL
 from collect_med_inst_cd.inst_cd_crawler import MedInstCdCrawler
-from collect_med_inst_cd.web_parser import BranchWebpageParser
-from collect_med_inst_cd.excel_parser import ExcelParser
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-b', '--branch', type=int, choices=[1, 2, 3, 4, 5, 6, 7, 8],

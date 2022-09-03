@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
-
-import xlrd
-import os
-import openpyxl
-import re
 import logging
-from .consts import *
+import os
+import re
+
+import openpyxl
+import xlrd
+
 
 class ExcelParser:
     """

@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
-
-import unittest
 import logging
+import unittest
+
 from collect_med_inst_cd.consts import *
 from collect_med_inst_cd.excel_parser import ExcelParser
+
 
 class TestExcelParser(unittest.TestCase):
 

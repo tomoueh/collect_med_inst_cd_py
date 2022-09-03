@@ -1,12 +1,15 @@
-# -*- coding: utf-8 -*-
-
 import logging
 import re
 from enum import Enum
 from urllib.parse import urljoin
+
 import requests
 from bs4 import BeautifulSoup
-from .consts import *
+
+from .consts import (BRANCH_CYUGOKU, BRANCH_HOKAIDO, BRANCH_KANTO_SINETU,
+                     BRANCH_KINKI, BRANCH_KYUSYU, BRANCH_SHIKOKU,
+                     BRANCH_TOHOKU, BRANCH_TOKAI_HOKURIKU)
+
 
 class WebPageType(Enum):
     TABLE = 1

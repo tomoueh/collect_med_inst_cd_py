@@ -1,7 +1,9 @@
-import unittest
 import logging
+import unittest
+
 from collect_med_inst_cd.consts import *
 from collect_med_inst_cd.web_parser import BranchWebpageParser
+
 
 class TestBranchWebpageParser(unittest.TestCase):
 

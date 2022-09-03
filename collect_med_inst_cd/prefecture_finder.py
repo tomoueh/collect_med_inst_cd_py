@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
-
-import logging
 import json
+import logging
+
 import requests
+
 
 class PrefectureFinder:
 
