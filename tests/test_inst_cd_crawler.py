@@ -11,12 +11,44 @@ class TestMedInstCdCrawler(unittest.TestCase):
         crawler = MedInstCdCrawler()
         crawler.run(BRANCH_ALL)
 
-    def test_run_singleone(self):
+    def test_run_hokaido(self):
+        self._logger.debug("start: HOKAIDO")
         crawler = MedInstCdCrawler()
-        # crawler.run(BRANCH_TOHOKU)
-        # crawler.run(BRANCH_KANTO_SINETU)
-        # crawler.run(BRANCH_CYUGOKU)
-        # crawler.run(BRANCH_SHIKOKU)
+        crawler.run(BRANCH_HOKAIDO)
+
+    def test_run_tohoku(self):
+        self._logger.debug("start: TOHOKU")
+        crawler = MedInstCdCrawler()
+        crawler.run(BRANCH_TOHOKU)
+
+    def test_run_kanto_sinetu(self):
+        self._logger.debug("start: KANTO_SINETU")
+        crawler = MedInstCdCrawler()
+        crawler.run(BRANCH_KANTO_SINETU)
+
+    def test_run_tokai_hokuriku(self):
+        self._logger.debug("start: TOKAI_HOKURIKU")
+        crawler = MedInstCdCrawler()
+        crawler.run(BRANCH_TOKAI_HOKURIKU)
+
+    def test_run_kinki(self):
+        self._logger.debug("start: KINKI")
+        crawler = MedInstCdCrawler()
+        crawler.run(BRANCH_KINKI)
+
+    def test_run_cyugoku(self):
+        self._logger.debug("start: CYUGOKU")
+        crawler = MedInstCdCrawler()
+        crawler.run(BRANCH_CYUGOKU)
+
+    def test_run_shikoku(self):
+        self._logger.debug("start: SHIKOKU")
+        crawler = MedInstCdCrawler()
+        crawler.run(BRANCH_SHIKOKU)
+
+    def test_run_kyusyu(self):
+        self._logger.debug("start: KYUSYU")
+        crawler = MedInstCdCrawler()
         crawler.run(BRANCH_KYUSYU)
 
     def test_run_each(self):
@@ -32,7 +64,7 @@ class TestMedInstCdCrawler(unittest.TestCase):
 
     def setUp(self):
 
-        self._logger = logging.getLogger(__name__)
+        self._logger = logging.getLogger("collect_med_inst_cd")
         self._logger.setLevel(logging.DEBUG)  # change the level
         handler = logging.StreamHandler()
         handler.setLevel(logging.DEBUG)

@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 
-from typing import Callable
 import logging
 import os
 import re
-import zipfile
 import shutil
+import zipfile
+from typing import Callable
 from urllib.parse import urljoin
+
 import requests
-from bs4 import BeautifulSoup
-from .consts import BRANCH_ALL, BRANCH_LIST, BRANCH_KYUSYU
-from .web_parser import BranchWebpageParser
+
+from .consts import BRANCH_ALL, BRANCH_KYUSYU, BRANCH_LIST
 from .excel_parser import ExcelParser
-from .prefecture_finder import PrefectureFinder
 from .output_csv_handler import OutputCsvHandler
+from .prefecture_finder import PrefectureFinder
+from .web_parser import BranchWebpageParser
+
 
 class MedInstCdCrawler:
     """
@@ -55,21 +57,22 @@ class MedInstCdCrawler:
 
         if branch_id == BRANCH_ALL:
             for b_id in BRANCH_LIST:
-                self._logger.debug(f"..branch-{b_id} begin")
                 # call this recursively
                 self._fetch_med_inst_cd(b_id, dl_dir, output_handler, out_dir, output_file)
         else:
+            self._logger.debug(f"..branch-{branch_id} begin")
             file_urls = self._web_parser.extract_file_urls(branch_id)
             if file_urls:
                 for i, f_url in enumerate(file_urls):
                     saved_file = self._download_to(f_url, dl_dir)
                     if saved_file:
+                        self._logger.debug(f"downloaded: {saved_file}")
                         if output_handler:
                             output_handler(branch_id, i+1, saved_file, out_dir, output_file)
                     else:
-                        self._logger(f"can not download file: {f_url}")
+                        self._logger.warn(f"can not download file: {f_url}")
 
-    def _output_med_list_from_file(self, branch_id: int, p_seq: int, file_path: str, out_dir: str, output_file: str):
+    def _output_med_list_from_file(self, branch_id: int, p_seq: int, file_path: str, out_dir: str, output_file: str) -> None:
 
         re_patt_excel = re.compile(r'.+[xls|xlsx]$')
 
@@ -77,26 +80,38 @@ class MedInstCdCrawler:
             unzip_dir = self._zip_extract(file_path)
             # specified pattern or excel pattern
             re_patt = self._zipfile_filter[branch_id] if branch_id in self._zipfile_filter else re_patt_excel
-            for f in os.listdir(unzip_dir):
-                f_path = os.path.join(unzip_dir, f)
-                if os.path.isfile(f_path) and re_patt.match(f):
-                    med_l = self._parse_file(branch_id, f_path)
-                    if med_l:
-                        self._csv_handler.output_csv_append(out_dir, output_file, med_l)
+
+            self._output_file_in_dir(branch_id, unzip_dir, re_patt, out_dir, output_file)
 
         elif re_patt_excel.match(file_path):
             med_l = self._parse_file(branch_id, file_path)
             if med_l:
+                self._logger.debug(f"output_csv_append: {file_path}")
                 self._csv_handler.output_csv_append(out_dir, output_file, med_l)
+
+    def _output_file_in_dir(self, branch_id: str, dir_path: str, file_filter: re.Pattern, out_dir: str, output_file: str) -> None:
+
+        for f in os.listdir(dir_path):
+            f_path = os.path.join(dir_path, f)
+            if os.path.isdir(f_path):
+                # call this recursively
+                self._output_file_in_dir(branch_id, f_path, file_filter, out_dir, output_file)
+
+            elif os.path.isfile(f_path) and file_filter.match(f):
+                med_l = self._parse_file(branch_id, f_path)
+                if med_l:
+                    self._logger.debug(f"output_csv_append: {f_path}")
+                    self._csv_handler.output_csv_append(out_dir, output_file, med_l)
 
     def _parse_file(self, branch_id: int, file_path: str) -> list:
         """
-        Parse Excel file and create med_inst_cd list. Add 10digit med_inst_cd to each item of the list.
+        Parse Excel file and create med_inst_cd list. Add 10-digit med_inst_cd to each item of the list.
         """
 
+        # fileはprefecture単位の前提
         med_l = self._excel_parser.parse(branch_id, file_path)
         if med_l:
-            # Add med_inst_cd(9 digit) with prefecture-cd using first valid zip_cd
+            # Find the prefecture-cd using first valid zip_cd, add med_inst_cd(9 digit) with its prefecture-cd.
             # Must be one file for one prefecture.
             pref_cd = ''
             retry = 8
@@ -105,11 +120,13 @@ class MedInstCdCrawler:
                 if zip_cd:
                     pref_cd = self._pref_finder.find_prefecture_cd(zip_cd)
                     if pref_cd:
+                        # Add med_inst_cd(9 digit) at the first column
                         med_l = [[f"{pref_cd:0>2}{item[0]}"]+item for item in med_l]
                         break
 
                 retry -= 1
                 if retry <= 0:
+                    self._logger.warn(f"can not find the prefecture cd: {file_path}")
                     break
 
             if not pref_cd:
@@ -158,5 +175,7 @@ class MedInstCdCrawler:
                             ext = f".{splited[-1]}"
                         info.filename = f"dl_{counter}{ext}"
                         counter += 1
+
                     zfile.extract(info, unzip_dir)
+
         return unzip_dir
