@@ -124,7 +124,7 @@ class MedInstCdCrawler:
 
                 retry -= 1
                 if retry <= 0:
-                    self._logger.warn(f"can not find the prefecture cd: {file_path}")
+                    self._logger.warn(f"can not find the prefecture cd. {file_path},branch_id:{branch_id}")
                     break
 
             if not pref_cd:
