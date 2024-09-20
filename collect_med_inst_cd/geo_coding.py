@@ -54,93 +54,104 @@ class GeoCoding:
         for i, addressText in enumerate([medInstAddress, medInstAddress.replace("大字", "")]):
             if (i != 0 and addressText == medInstAddress):
                 continue
-            for col in ["address", "address_wo_oaza"]:
-                geo_points = self._find_geo_point_of_each_address_impl(addressText, col, geo_point_df)
+
+            for conv in ({"": ""}, {"の": "ノ"}, {"ノ": "の"}, {"ヶ": "ケ"}, {"ケ": "ヶ"}, {"桜": "櫻"}):
+                t_address = addressText
+                if (list(conv.keys())[0] != ""):
+                    t_address = addressText.translate(str.maketrans(conv))
+                    if (t_address == addressText):
+                        continue
+                # find t_address
+                geo_points = self._find_geo_point_of_each_address_impl(t_address, geo_point_df)
                 if (geo_points):
                     return geo_points
         return ()
 
-    def _find_geo_point_of_each_address_impl(self, medInstAddress: str, search_col: str, geo_point_df: pd.DataFrame) -> tuple:
-        for conv in ({"": ""}, {"の": "ノ"}, {"ノ": "の"}, {"ヶ": "ケ"}, {"ケ": "ヶ"}, {"桜": "櫻"}):
-            t_address = medInstAddress
-            if (list(conv.keys())[0] != ""):
-                t_address = medInstAddress.translate(str.maketrans(conv))
-                if (t_address == medInstAddress):
-                    continue
-
-            filtered_geo_point_df = geo_point_df[geo_point_df[search_col].map(lambda x: t_address.startswith(x))]
+    def _find_geo_point_of_each_address_impl(self, medInstAddress: str, geo_point_df: pd.DataFrame) -> tuple:
+        """
+        Find Geolonia point of address.
+        """
+        for search_col in ["address", "address_wo_oaza", "address_called"]:
+            filtered_geo_point_df = geo_point_df[geo_point_df[search_col].map(
+                lambda x: x != "" and medInstAddress.startswith(x))]
+            if (len(filtered_geo_point_df) == 0):
+                continue
             if (len(filtered_geo_point_df) == 1):
                 return (filtered_geo_point_df["latitude"].values.tolist()[0], filtered_geo_point_df["longitude"].values.tolist()[0])
             if (len(filtered_geo_point_df) >= 2):
                 # find that matches longest one
                 max_len = filtered_geo_point_df[search_col].str.len().max()
                 found_df = filtered_geo_point_df[filtered_geo_point_df[search_col].str.len() == max_len]
+                if (len(found_df) >= 2 and search_col != "address_called"):
+                    not_called_df = found_df[found_df["address_called"].str.len() == 0]
+                    if (len(not_called_df) > 0):
+                        found_df = not_called_df
                 return (found_df["latitude"].values.tolist()[0], found_df["longitude"].values.tolist()[0])
 
         return ()
 
-    def create_file_wt_geo_old(self, med_file_path: str):
-        """
+    # def create_file_wt_geo_old(self, med_file_path: str):
+    #     """
 
-        """
+    #     """
 
-        self._logger.debug(f"begin parsing file: {med_file_path}")
-        if os.path.isfile(med_file_path):
+    #     self._logger.debug(f"begin parsing file: {med_file_path}")
+    #     if os.path.isfile(med_file_path):
 
-            geo_point_dict = self._address_point_to_dict(self._map_address_point())
+    #         geo_point_dict = self._address_point_to_dict(self._map_address_point())
 
-            # 1.'丁目'があれば、そこまで
-            # 2.'番地'の前まで, '番'の前まで
-            re_patterns = (re.compile(r'(\S+[０-９]+丁目[北|南]?)\S*'),
-                           re.compile(r'(\S*[^０-９]+)(?=[０-９]+番地)'), re.compile(r'(\S*[^０-９]+)(?=[０-９]+番)'))
-            #    re.compile(r'([^０-９]+)(?=[０-９]+)'))
-            result_l = []
-            with open(med_file_path, 'r', encoding="utf-8") as f:
-                reader = csv.reader(f)
-                for row in reader:
-                    address = row[4]
+    #         # 1.'丁目'があれば、そこまで
+    #         # 2.'番地'の前まで, '番'の前まで
+    #         re_patterns = (re.compile(r'(\S+[０-９]+丁目[北|南]?)\S*'),
+    #                        re.compile(r'(\S*[^０-９]+)(?=[０-９]+番地)'), re.compile(r'(\S*[^０-９]+)(?=[０-９]+番)'))
+    #         #    re.compile(r'([^０-９]+)(?=[０-９]+)'))
+    #         result_l = []
+    #         with open(med_file_path, 'r', encoding="utf-8") as f:
+    #             reader = csv.reader(f)
+    #             for row in reader:
+    #                 address = row[4]
 
-                    for patt in re_patterns:
-                        m = patt.match(address)
-                        if m:
-                            address = m.groups()[0]
-                            break
+    #                 for patt in re_patterns:
+    #                     m = patt.match(address)
+    #                     if m:
+    #                         address = m.groups()[0]
+    #                         break
 
-                    # To漢数字
-                    address = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, address)
+    #                 # To漢数字
+    #                 address = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, address)
 
-                    if address in geo_point_dict:
-                        point_v = geo_point_dict[address]
-                        result_l.append([*row, point_v[0], point_v[1]])
-                    else:
-                        matched = False
-                        # 住の江,山ノ手,旭ヶ丘,
-                        for conv in ({"の": "ノ"}, {"ノ": "の"}, {"ヶ": "ケ"}, {"ケ": "ヶ"}):
-                            s = address.translate(str.maketrans(conv))
-                            if s in geo_point_dict:
-                                point_v = geo_point_dict[s]
-                                result_l.append([*row, point_v[0], point_v[1]])
-                                matched = True
-                                break
+    #                 if address in geo_point_dict:
+    #                     point_v = geo_point_dict[address]
+    #                     result_l.append([*row, point_v[0], point_v[1]])
+    #                 else:
+    #                     matched = False
+    #                     # 住の江,山ノ手,旭ヶ丘,
+    #                     for conv in ({"の": "ノ"}, {"ノ": "の"}, {"ヶ": "ケ"}, {"ケ": "ヶ"}):
+    #                         s = address.translate(str.maketrans(conv))
+    #                         if s in geo_point_dict:
+    #                             point_v = geo_point_dict[s]
+    #                             result_l.append([*row, point_v[0], point_v[1]])
+    #                             matched = True
+    #                             break
 
-                        # if not matched:
-                        #     # geo_point_dictのaddressが短いCase
-                        #     for addr, p in geo_point_dict.items():
-                        #         if addr in address:
-                        #             result_l.append([*row, p[0], p[1]])
-                        #             matched = True
-                        #             break
+    #                     # if not matched:
+    #                     #     # geo_point_dictのaddressが短いCase
+    #                     #     for addr, p in geo_point_dict.items():
+    #                     #         if addr in address:
+    #                     #             result_l.append([*row, p[0], p[1]])
+    #                     #             matched = True
+    #                     #             break
 
-                        if not matched:
-                            self._logger.debug(f"orig={row[4]}: converted={address}")
-                            result_l.append([*row, "", ""])
+    #                     if not matched:
+    #                         self._logger.debug(f"orig={row[4]}: converted={address}")
+    #                         result_l.append([*row, "", ""])
 
-            # self._logger.debug(result_l[:5])
+    #         # self._logger.debug(result_l[:5])
 
-            file_name = os.path.splitext(os.path.basename(med_file_path))[0]
-            file_name = f"{file_name}_wt_geo.csv"
-            csv_h = OutputCsvHandler()
-            csv_h.output_csv(os.path.dirname(med_file_path), file_name, result_l)
+    #         file_name = os.path.splitext(os.path.basename(med_file_path))[0]
+    #         file_name = f"{file_name}_wt_geo.csv"
+    #         csv_h = OutputCsvHandler()
+    #         csv_h.output_csv(os.path.dirname(med_file_path), file_name, result_l)
 
     def _map_address_point(self, forced_fetch=False) -> pd.DataFrame:
         """
@@ -161,15 +172,15 @@ class GeoCoding:
             # geo_f = r".\tmp_data\latest.csv"
 
             df = pd.read_csv(geo_f, encoding='utf-8', dtype={"小字・通称名": "string"})
+            self._logger.debug(df.to_string(max_rows=5))
+
             for l_v in ["緯度", "経度"]:
                 df[l_v] = df[l_v].round(6)
             df["address"] = df["市区町村名"] + df["大字町丁目名"].str.replace("（大字なし）", "")
-            df.drop_duplicates("address", inplace=True)
             df.rename(columns={'緯度': 'latitude', '経度': 'longitude'}, inplace=True)
             df["address_wo_oaza"] = df["address"].str.replace("大字", "")
-            # df["address_called"] = (df["市区町村名"] + df["小字・通称名"]) if not pd.isnull(df["小字・通称名"]) else ""
-            df["address_called"] = df.apply(lambda r: (r["市区町村名"] + r["小字・通称名"])
-                                            if not pd.isnull(r["小字・通称名"]) else "")
+            df["address_called"] = df["小字・通称名"].where(df["小字・通称名"].isnull(), df["市区町村名"] + df["小字・通称名"])
+            df["address_called"].fillna("", inplace=True)
 
             addressDf = df[["address", "address_wo_oaza", "address_called", "latitude", "longitude"]]
             # save as pickle file
@@ -181,7 +192,7 @@ class GeoCoding:
             with open(pickl_f, 'rb') as handle:
                 addressDf = pickle.load(handle)
 
-        # self._logger.debug(addressDf)
+        # self._logger.debug(addressDf.to_string(max_rows=30))
 
         return addressDf
 

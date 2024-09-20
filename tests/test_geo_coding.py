@@ -1,6 +1,7 @@
 import logging
 import re
 import unittest
+import pandas as pd
 
 from collect_med_inst_cd.geo_coding import GeoCoding
 
@@ -11,12 +12,24 @@ class TestGeoCoding(unittest.TestCase):
         geo = GeoCoding()
         geo._logger = self._logger
         med_file_path = r".\output\all_med_inst_cd.csv"
+        # med_file_path = r".\tests\test_med_inst_cd.csv"
         geo.create_file_wt_geo(med_file_path, check_only=True)
 
     def test_map_address_point(self):
         geo = GeoCoding()
         geo._logger = self._logger
-        geo._map_address_point()
+        df = geo._map_address_point(forced_fetch=True)
+        # check
+        self._logger.debug(df.to_string(max_rows=10))
+        # has address_called
+        self._logger.debug(df[df["address_called"].str.len() > 0].to_string(max_rows=10))
+
+        # for t_address in ["弘前市泉田１３３７番", "長野市問御所町１３３７番地イの４"]:
+        #     filtered_df = df[df["address_called"].map(
+        #         lambda x: x != "" and t_address.startswith(x))]
+        #     self._logger.debug(f"--{t_address}: {'hit!' if len(filtered_df) > 0 else 'not found'}")
+        #     if len(filtered_df) > 0:
+        #         self._logger.debug(filtered_df.to_string())
 
     def test_convert2kansuji(self):
         geo = GeoCoding()
