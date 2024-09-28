@@ -24,7 +24,6 @@ class GeoCoding:
         if os.path.isfile(med_file_path):
 
             geo_point_df = self._map_address_point()
-            self._logger.debug(f"geo_point_df size: {len(geo_point_df)}")
 
             result_l = []
             with open(med_file_path, 'r', encoding="utf-8") as f:
@@ -183,6 +182,10 @@ class GeoCoding:
             df["address_called"].fillna("", inplace=True)
 
             addressDf = df[["address", "address_wo_oaza", "address_called", "latitude", "longitude"]]
+            # no duplicated, meanless.
+            # addressDf.drop_duplicates(subset=["address", "address_wo_oaza",
+            #                           "address_called"], keep='last').reset_index(drop=True, inplace=True)
+
             # save as pickle file
             with open(pickl_f, 'wb') as handle:
                 pickle.dump(addressDf, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -193,6 +196,7 @@ class GeoCoding:
                 addressDf = pickle.load(handle)
 
         # self._logger.debug(addressDf.to_string(max_rows=30))
+        self._logger.debug(f"addressDf size: {len(addressDf)}")
 
         return addressDf
 
