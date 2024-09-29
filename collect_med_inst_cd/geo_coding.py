@@ -23,7 +23,8 @@ class GeoCoding:
         self._logger.debug(f"begin parsing file: {med_file_path}")
         if os.path.isfile(med_file_path):
 
-            geo_point_df = self._map_address_point()
+            # geo_point_df = self._map_address_point()
+            geo_point_dicts = self._address_point_to_dict(self._map_address_point())
 
             result_l = []
             with open(med_file_path, 'r', encoding="utf-8") as f:
@@ -31,11 +32,11 @@ class GeoCoding:
                 for row in reader:
                     # To漢数字
                     medInstAddress = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, row[4])
-                    point_v = self._find_geo_point_of_each_address(medInstAddress, geo_point_df)
+                    point_v = self._find_geo_point_of_each_address_by_dict(medInstAddress, geo_point_dicts)
                     if (not point_v):
                         medInstAddress = re.sub(r'(\S*[^０-９－ーの])+([０-９])+[－ーの]', r'\1\2丁目', row[4])
                         medInstAddressWtCyome = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, medInstAddress)
-                        point_v = self._find_geo_point_of_each_address(medInstAddressWtCyome, geo_point_df)
+                        point_v = self._find_geo_point_of_each_address_by_dict(medInstAddressWtCyome, geo_point_dicts)
 
                     if (point_v):
                         result_l.append([*row, point_v[0], point_v[1]])
@@ -49,7 +50,7 @@ class GeoCoding:
                 csv_h = OutputCsvHandler()
                 csv_h.output_csv(os.path.dirname(med_file_path), file_name, result_l)
 
-    def _find_geo_point_of_each_address(self, medInstAddress: str, geo_point_df: pd.DataFrame) -> tuple:
+    def _find_geo_point_of_each_address_by_dict(self, medInstAddress: str, t_dicts: tuple) -> tuple:
         for i, addressText in enumerate([medInstAddress, medInstAddress.replace("大字", "")]):
             if (i != 0 and addressText == medInstAddress):
                 continue
@@ -61,33 +62,69 @@ class GeoCoding:
                     if (t_address == addressText):
                         continue
                 # find t_address
-                geo_points = self._find_geo_point_of_each_address_impl(t_address, geo_point_df)
-                if (geo_points):
-                    return geo_points
+                for t_dict in t_dicts:
+                    geo_points = self._find_geo_point_of_each_address_impl_by_dict(t_address, t_dict)
+                    if (geo_points):
+                        return geo_points
         return ()
 
-    def _find_geo_point_of_each_address_impl(self, medInstAddress: str, geo_point_df: pd.DataFrame) -> tuple:
+    def _find_geo_point_of_each_address_impl_by_dict(self, medInstAddress: str, t_dict: dict) -> tuple:
         """
         Find Geolonia point of address.
         """
-        for search_col in ["address", "address_wo_oaza", "address_called"]:
-            filtered_geo_point_df = geo_point_df[geo_point_df[search_col].map(
-                lambda x: x != "" and medInstAddress.startswith(x))]
-            if (len(filtered_geo_point_df) == 0):
-                continue
-            if (len(filtered_geo_point_df) == 1):
-                return (filtered_geo_point_df["latitude"].values.tolist()[0], filtered_geo_point_df["longitude"].values.tolist()[0])
-            if (len(filtered_geo_point_df) >= 2):
-                # find that matches longest one
-                max_len = filtered_geo_point_df[search_col].str.len().max()
-                found_df = filtered_geo_point_df[filtered_geo_point_df[search_col].str.len() == max_len]
-                if (len(found_df) >= 2 and search_col != "address_called"):
-                    not_called_df = found_df[found_df["address_called"].str.len() == 0]
-                    if (len(not_called_df) > 0):
-                        found_df = not_called_df
-                return (found_df["latitude"].values.tolist()[0], found_df["longitude"].values.tolist()[0])
+        # filtered_keys = [key for key in t_dict.keys() if medInstAddress.startswith(key)]
+        filtered_dict = {k: v for (k, v) in t_dict.items() if medInstAddress.startswith(k)}
+        if (len(filtered_dict) == 0):
+            return ()
+        if (len(filtered_dict) == 1):
+            return list(filtered_dict.values())[0]
+        if (len(filtered_dict) >= 2):
+            # find longest match one
+            maxlen = max(len(k) for k in filtered_dict)
+            found_dict = {k: v for (k, v) in filtered_dict.items() if len(k) == maxlen}
+            return list(found_dict.values())[0]
 
         return ()
+
+    # def _find_geo_point_of_each_address_by_df(self, medInstAddress: str, geo_point_df: pd.DataFrame) -> tuple:
+    #     for i, addressText in enumerate([medInstAddress, medInstAddress.replace("大字", "")]):
+    #         if (i != 0 and addressText == medInstAddress):
+    #             continue
+
+    #         for conv in ({"": ""}, {"の": "ノ"}, {"ノ": "の"}, {"ヶ": "ケ"}, {"ケ": "ヶ"}, {"桜": "櫻"}):
+    #             t_address = addressText
+    #             if (list(conv.keys())[0] != ""):
+    #                 t_address = addressText.translate(str.maketrans(conv))
+    #                 if (t_address == addressText):
+    #                     continue
+    #             # find t_address
+    #             geo_points = self._find_geo_point_of_each_address_impl_by_df(t_address, geo_point_df)
+    #             if (geo_points):
+    #                 return geo_points
+    #     return ()
+
+    # def _find_geo_point_of_each_address_impl_by_df(self, medInstAddress: str, geo_point_df: pd.DataFrame) -> tuple:
+    #     """
+    #     Find Geolonia point of address.
+    #     """
+    #     for search_col in ["address", "address_wo_oaza", "address_called"]:
+    #         filtered_geo_point_df = geo_point_df[geo_point_df[search_col].map(
+    #             lambda x: x != "" and medInstAddress.startswith(x))]
+    #         if (len(filtered_geo_point_df) == 0):
+    #             continue
+    #         if (len(filtered_geo_point_df) == 1):
+    #             return (filtered_geo_point_df["latitude"].values.tolist()[0], filtered_geo_point_df["longitude"].values.tolist()[0])
+    #         if (len(filtered_geo_point_df) >= 2):
+    #             # find that matches longest one
+    #             max_len = filtered_geo_point_df[search_col].str.len().max()
+    #             found_df = filtered_geo_point_df[filtered_geo_point_df[search_col].str.len() == max_len]
+    #             if (len(found_df) >= 2 and search_col != "address_called"):
+    #                 not_called_df = found_df[found_df["address_called"].str.len() == 0]
+    #                 if (len(not_called_df) > 0):
+    #                     found_df = not_called_df
+    #             return (found_df["latitude"].values.tolist()[0], found_df["longitude"].values.tolist()[0])
+
+    #     return ()
 
     # def create_file_wt_geo_old(self, med_file_path: str):
     #     """
@@ -167,8 +204,8 @@ class GeoCoding:
             self._logger.debug("download Geolonia data")
             # Geolonia住所データ
             url = "https://raw.githubusercontent.com/geolonia/japanese-addresses/master/data/latest.csv"
-            geo_f = self._download_to(url, r".\tmp_data")
-            # geo_f = r".\tmp_data\latest.csv"
+            # geo_f = self._download_to(url, r".\tmp_data")
+            geo_f = r".\tmp_data\latest.csv"
 
             df = pd.read_csv(geo_f, encoding='utf-8', dtype={"小字・通称名": "string"})
             self._logger.debug(df.to_string(max_rows=5))
@@ -177,7 +214,9 @@ class GeoCoding:
                 df[l_v] = df[l_v].round(6)
             df["address"] = df["市区町村名"] + df["大字町丁目名"].str.replace("（大字なし）", "")
             df.rename(columns={'緯度': 'latitude', '経度': 'longitude'}, inplace=True)
-            df["address_wo_oaza"] = df["address"].str.replace("大字", "")
+            df["address_wo_oaza"] = ""
+            df["address_wo_oaza"] = df["address_wo_oaza"].mask(
+                df["address"].str.contains("大字"), df["address"].str.replace("大字", ""))
             df["address_called"] = df["小字・通称名"].where(df["小字・通称名"].isnull(), df["市区町村名"] + df["小字・通称名"])
             df["address_called"].fillna("", inplace=True)
 
@@ -200,14 +239,29 @@ class GeoCoding:
 
         return addressDf
 
-    def _address_point_to_dict(self, df: pd.DataFrame) -> dict:
+    def _address_point_to_dict(self, df: pd.DataFrame) -> tuple:
         """
         create dict(address, tuple(lat,lng)) from pd.DataFrame
         """
 
-        df["point_v"] = list(map(tuple, df[["latitude", "longitude"]].values))
-        # self._logger.debug(df.head())
-        return dict(zip(df["address"], df["point_v"]))
+        wo_called_df = df[df["address_called"].str.len() == 0]
+        # 1.address-unique
+        address_unique = wo_called_df.copy().drop_duplicates("address")
+        address_unique["point_v"] = list(map(tuple, address_unique[["latitude", "longitude"]].values))
+        # self._logger.debug(address_unique.head())
+
+        # 2.address_wo_oaza-unique
+        address_wo_oaza_unique = wo_called_df[wo_called_df["address_wo_oaza"].str
+                                              .len() >= 1].copy().drop_duplicates("address_wo_oaza")
+        address_wo_oaza_unique["point_v"] = list(map(tuple, address_wo_oaza_unique[["latitude", "longitude"]].values))
+
+        # 3.address_called
+        address_called = df[df["address_called"].str.len() >= 1].drop_duplicates("address_called")
+        address_called["point_v"] = list(map(tuple, address_called[["latitude", "longitude"]].values))
+
+        return (dict(zip(address_unique["address"], address_unique["point_v"])),
+                dict(zip(address_wo_oaza_unique["address_wo_oaza"], address_wo_oaza_unique["point_v"])),
+                dict(zip(address_called["address_called"], address_called["point_v"])))
 
     def _download_to(self, url: str, dl_dir: str) -> str:
 

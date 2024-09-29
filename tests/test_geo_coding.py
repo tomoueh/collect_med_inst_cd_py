@@ -21,6 +21,8 @@ class TestGeoCoding(unittest.TestCase):
         df = geo._map_address_point(forced_fetch=True)
         # check
         self._logger.debug(df.to_string(max_rows=10))
+        # has address_wo_oaza
+        self._logger.debug(df[df["address_wo_oaza"].str.len() > 0].to_string(max_rows=10))
         # has address_called
         self._logger.debug(df[df["address_called"].str.len() > 0].to_string(max_rows=10))
 
@@ -30,6 +32,16 @@ class TestGeoCoding(unittest.TestCase):
         #     self._logger.debug(f"--{t_address}: {'hit!' if len(filtered_df) > 0 else 'not found'}")
         #     if len(filtered_df) > 0:
         #         self._logger.debug(filtered_df.to_string())
+
+    def test_address_point_to_dict(self):
+        geo = GeoCoding()
+        geo._logger = self._logger
+        dict1, dict2, dict3 = geo._address_point_to_dict(geo._map_address_point(forced_fetch=True))
+        self._logger.debug(f"size={len(dict1),len(dict2),len(dict3)}")
+        self._logger.debug(list(dict1.items())[:5])
+        self._logger.debug(list(dict2.items())[:5])
+        self._logger.debug(dict2.get("川越市大袋新田"))
+        self._logger.debug(list(dict3.items())[:5])
 
     def test_convert2kansuji(self):
         geo = GeoCoding()
