@@ -34,7 +34,7 @@ class GeoCoding:
                     medInstAddress = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, row[4])
                     point_v = self._find_geo_point_of_each_address_by_dict(medInstAddress, geo_point_dicts)
                     if (not point_v):
-                        medInstAddress = re.sub(r'(\S*[^０-９－ーの])+([０-９])+[－ーの]', r'\1\2丁目', row[4])
+                        medInstAddress = re.sub(r'^(\S+?)([０-９])+[－ー―の]', r'\1\2丁目', row[4])
                         medInstAddressWtCyome = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, medInstAddress)
                         point_v = self._find_geo_point_of_each_address_by_dict(medInstAddressWtCyome, geo_point_dicts)
 
@@ -50,15 +50,21 @@ class GeoCoding:
                 csv_h = OutputCsvHandler()
                 csv_h.output_csv(os.path.dirname(med_file_path), file_name, result_l)
 
+    def _address_alias(self) -> list:
+        return [("", ""), ("の", "ノ"), ("ノ", "の"), ("ヶ", "ケ"), ("ケ", "ヶ"),
+                ("桜", "櫻"), ("通り", "通"), ("桧山", "檜山")];
+
     def _find_geo_point_of_each_address_by_dict(self, medInstAddress: str, t_dicts: tuple) -> tuple:
         for i, addressText in enumerate([medInstAddress, medInstAddress.replace("大字", "")]):
             if (i != 0 and addressText == medInstAddress):
                 continue
 
-            for conv in ({"": ""}, {"の": "ノ"}, {"ノ": "の"}, {"ヶ": "ケ"}, {"ケ": "ヶ"}, {"桜": "櫻"}):
+            for (fromText, toText) in self._address_alias():
+                # convert address in each case
                 t_address = addressText
-                if (list(conv.keys())[0] != ""):
-                    t_address = addressText.translate(str.maketrans(conv))
+                if (fromText != "" and fromText in addressText):
+                    t_address = t_address.replace(fromText, toText)
+                    # t_address = addressText.translate(str.maketrans(conv))
                     if (t_address == addressText):
                         continue
                 # find t_address
@@ -212,11 +218,14 @@ class GeoCoding:
 
             for l_v in ["緯度", "経度"]:
                 df[l_v] = df[l_v].round(6)
-            df["address"] = df["市区町村名"] + df["大字町丁目名"].str.replace("（大字なし）", "")
+            df["oaza_name"] = df["大字町丁目名"].str.replace("（大字なし）", "")
+            df["address"] = df["市区町村名"] + df["oaza_name"]
             df.rename(columns={'緯度': 'latitude', '経度': 'longitude'}, inplace=True)
             df["address_wo_oaza"] = ""
             df["address_wo_oaza"] = df["address_wo_oaza"].mask(
-                df["address"].str.contains("大字"), df["address"].str.replace("大字", ""))
+                df["oaza_name"].str.startswith("大字"), df["市区町村名"] + df["oaza_name"].str.replace("大字", "", 1))
+            df["address_wo_oaza"] = df["address_wo_oaza"].mask(
+                df["oaza_name"].str.startswith("字"), df["市区町村名"] + df["oaza_name"].str.replace("字", "", 1))
             df["address_called"] = df["小字・通称名"].where(df["小字・通称名"].isnull(), df["市区町村名"] + df["小字・通称名"])
             df["address_called"].fillna("", inplace=True)
 

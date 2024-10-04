@@ -40,7 +40,8 @@ class TestGeoCoding(unittest.TestCase):
         self._logger.debug(f"size={len(dict1),len(dict2),len(dict3)}")
         self._logger.debug(list(dict1.items())[:5])
         self._logger.debug(list(dict2.items())[:5])
-        self._logger.debug(dict2.get("川越市大袋新田"))
+        # self._logger.debug(dict2.get("川越市大袋新田", "Not found"))
+        # self._logger.debug(dict2.get("茅部郡鹿部町鹿部", "Not found"))
         self._logger.debug(list(dict3.items())[:5])
 
     def test_convert2kansuji(self):
@@ -87,8 +88,10 @@ class TestGeoCoding(unittest.TestCase):
 
     def test_re_foo2(self):
 
-        for s in ["水戸市三の丸３－１２－４８", "水戸市双葉台３－３－１０", "水戸市双葉台１０", "水戸市袴塚３ー１ー１５", "水戸市宮町１の１の１"]:
-            replaced = re.sub(r'(\S*[^０-９－ーの])+([０-９])+[－ーの]', r'\1\2丁目', s)
+        for s in ["川口市前川１－１－５５メディパーク川口前川２－Ｃ", "水戸市三の丸３－１２－４８", "水戸市双葉台３－３－１０",
+                  "水戸市双葉台１０", "水戸市袴塚３ー１ー１５", "水戸市宮町１の１の１"]:
+            replaced = re.sub(r'^(\S+?)([０-９])+[－ー―の]', r'\1\2丁目', s)
+            # replaced = re.sub(r'(\S*[^０-９－ー―])+(?:([０-９])+[－ー―の])', r'\1\2丁目', s)
             self._logger.debug(replaced)
 
     def test_search_in_dict(self):
