@@ -30,13 +30,14 @@ class GeoCoding:
             with open(med_file_path, 'r', encoding="utf-8") as f:
                 reader = csv.reader(f)
                 for row in reader:
+                    medInstAddress = re.sub(r'^北海道|東京都|(京都|大阪)府|\S{2,3}県', '', row[4]).replace(' ', '')
                     # To漢数字
-                    medInstAddress = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, row[4])
-                    point_v = self._find_geo_point_of_each_address_by_dict(medInstAddress, geo_point_dicts)
+                    t_address = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, medInstAddress)
+                    point_v = self._find_geo_point_of_each_address_by_dict(t_address, geo_point_dicts)
                     if (not point_v):
-                        medInstAddress = re.sub(r'^(\S+?)([０-９])+[－ー―の]', r'\1\2丁目', row[4])
-                        medInstAddressWtCyome = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, medInstAddress)
-                        point_v = self._find_geo_point_of_each_address_by_dict(medInstAddressWtCyome, geo_point_dicts)
+                        t_address = re.sub(r'^(\S+?)([０-９])+[－ー―の]', r'\1\2丁目', medInstAddress)
+                        t_address_wo_cyome = re.sub(r'([０-９]+)', self._kansujinize_match_wrapper, t_address)
+                        point_v = self._find_geo_point_of_each_address_by_dict(t_address_wo_cyome, geo_point_dicts)
 
                     if (point_v):
                         result_l.append([*row, point_v[0], point_v[1]])
@@ -209,6 +210,8 @@ class GeoCoding:
 
             self._logger.debug("download Geolonia data")
             # Geolonia住所データ
+            # https://geolonia.github.io/japanese-addresses/
+            # https://github.com/geolonia/japanese-addresses
             url = "https://raw.githubusercontent.com/geolonia/japanese-addresses/master/data/latest.csv"
             # geo_f = self._download_to(url, r".\tmp_data")
             geo_f = r".\tmp_data\latest.csv"
@@ -221,11 +224,13 @@ class GeoCoding:
             df["oaza_name"] = df["大字町丁目名"].str.replace("（大字なし）", "")
             df["address"] = df["市区町村名"] + df["oaza_name"]
             df.rename(columns={'緯度': 'latitude', '経度': 'longitude'}, inplace=True)
+            # add the without-oaza address
             df["address_wo_oaza"] = ""
             df["address_wo_oaza"] = df["address_wo_oaza"].mask(
                 df["oaza_name"].str.startswith("大字"), df["市区町村名"] + df["oaza_name"].str.replace("大字", "", 1))
             df["address_wo_oaza"] = df["address_wo_oaza"].mask(
                 df["oaza_name"].str.startswith("字"), df["市区町村名"] + df["oaza_name"].str.replace("字", "", 1))
+            # add the so-called address
             df["address_called"] = df["小字・通称名"].where(df["小字・通称名"].isnull(), df["市区町村名"] + df["小字・通称名"])
             df["address_called"].fillna("", inplace=True)
 
