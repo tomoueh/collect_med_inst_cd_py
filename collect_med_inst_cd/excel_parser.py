@@ -3,7 +3,6 @@ import os
 import re
 
 import openpyxl
-import xlrd
 
 
 class ExcelParser:
@@ -23,46 +22,9 @@ class ExcelParser:
         #     setting = {'col_no': 0, 'col_med_cd': 1, 'col_inst_name': 2, 'col_address': 3}
 
         _, ext = os.path.splitext(file_path)
-        parser = ExcelParserXlsx(setting) if ext.lower() == ".xlsx" else ExcelParserXls(setting)
+        parser = ExcelParserXlsx(setting)
         return parser.parse(file_path)
 
-class ExcelParserXls:
-    """
-    Parse the Kouseikyoku excel xls file. Use xlrd.
-    """
-
-    def __init__(self, setting: dict):
-        self._logger = logging.getLogger(__name__)
-        self._setting = setting
-        self._val_cleaner = ValueCleaner()
-
-    def parse(self, file_path: str) -> list:
-        """
-        Parse the excel file and get med_inst_cd list
-        """
-
-        self._logger.debug(f"parse excel begin: {file_path}")
-
-        # https://xlrd.readthedocs.io/en/latest/
-        wb = xlrd.open_workbook(file_path)
-        for sheet in wb.sheets():
-            # self._logger.debug(sheet.row_values(8))
-            med_list = []
-            for nrow in range(sheet.nrows):
-                # check 項番col. 項番colのある行に医療機関コード,医療機関名,住所が入ってる
-                cell_no = sheet.cell_value(nrow, self._setting['col_no'])
-                if cell_no and cell_no.isdigit():
-
-                    med_cd = self._val_cleaner.parse_med_inst_cd(sheet.cell_value(nrow, self._setting['col_med_cd']))
-                    inst_name = self._val_cleaner.parse_med_inst_name(
-                        sheet.cell_value(nrow, self._setting['col_inst_name']))
-                    zip_cd, address = self._val_cleaner.parse_address(
-                        sheet.cell_value(nrow, self._setting['col_address']))
-
-                    med_list.append([med_cd, inst_name, zip_cd, address])
-
-            # self._logger.debug(med_list)
-            return med_list
 
 class ExcelParserXlsx:
     """
