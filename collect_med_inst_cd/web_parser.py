@@ -32,9 +32,9 @@ class BranchWebpageParser:
         href_zip_patt = re.compile(r'.+zip$')
 
         setting_dict = {
-            # 北海道 table.class="datatable", 医科(病院)row,医科(診療所)row - excel
+            # 北海道 table.class="m-table", 医科(病院)row,医科(診療所)row - excel
             BRANCH_HOKAIDO: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/hokkaido/gyomu/gyomu/hoken_kikan/code_ichiran.html",
-                             {"class": "datatable"}, ("th", "医科"), href_excel_patt, None),
+                             {"class": "m-table"}, ("th", "医科"), href_excel_patt, None),
             # 東北  table.class="datatable", 医科row,医科(歯科併設)row - each_col=県, last_col=All県bundle(zip)
             BRANCH_TOHOKU: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/tohoku/gyomu/gyomu/hoken_kikan/itiran.html",
                             {"class": "datatable"}, ("th", "医科"), href_zip_patt, None),
@@ -46,13 +46,13 @@ class BranchWebpageParser:
                                     None, None, href_zip_patt, re.compile(r'医科')),
             # 近畿: table, 医科\n医科併設 row - each_col=県,last_col=All県bundle(zip)
             BRANCH_KINKI: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/kinki/tyousa/shinkishitei.html",
-                           None, ("th", "医科"), href_zip_patt, None),
-            # 四国: table.class="datatable", 医科row - each_col=県(excel)
+                           None, ("td", "医科"), href_zip_patt, None),
+            # 四国: table.class="datatable", 医科row - each_col=県,last_col=All県bundle(zip)
             BRANCH_SHIKOKU: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/shikoku/gyomu/gyomu/hoken_kikan/shitei/index.html",
                              {"class": "datatable"}, ("th", "医科"), href_zip_patt, None),
-            # 中国: table.class="datatable", thなし, each_col=県,last_col=All県bundle(zip,a_text='医科')
+            # 中国: table.class="m-table", thなし, each_col=県,last_col=All県bundle(zip,a_text='医科')
             BRANCH_CYUGOKU: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/chugokushikoku/chousaka/iryoukikanshitei.html",
-                             {"class": "datatable"}, None, href_zip_patt, re.compile(r'^医科.*')),
+                             {"class": "m-table"}, None, href_zip_patt, re.compile(r'^医科.*')),
             # 九州: table.class="datatable", each_td=県(zip.mix)
             BRANCH_KYUSYU: (WebPageType.TABLE, "https://kouseikyoku.mhlw.go.jp/kyushu/gyomu/gyomu/hoken_kikan/index_00006.html",
                             {"class": "datatable"}, None, href_zip_patt, None)
@@ -89,7 +89,7 @@ class BranchWebpageParser:
         for tr in tr_l:
             if child_of_tr_attr:
                 children = tr.findChildren(child_of_tr_attr[0])
-                if children and child_of_tr_attr[1] in children[0].text:
+                if children and child_of_tr_attr[1] in children[0].text.replace(' ', '').replace('\u3000', ''):
                     links = tr.find_all("a", string=a_str, href=href_patt) if a_str else tr.find_all(
                         "a", href=href_patt)
                     if links:

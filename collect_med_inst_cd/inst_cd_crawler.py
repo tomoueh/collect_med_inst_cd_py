@@ -68,7 +68,7 @@ class MedInstCdCrawler:
                         if output_handler:
                             output_handler(branch_id, i+1, saved_file, out_dir, output_file)
                     else:
-                        self._logger.warn(f"can not download file: {f_url}")
+                        self._logger.warning(f"can not download file: {f_url}")
 
     def _output_med_list_from_file(self, branch_id: int, p_seq: int, file_path: str, out_dir: str, output_file: str) -> None:
 
@@ -124,7 +124,7 @@ class MedInstCdCrawler:
 
                 retry -= 1
                 if retry <= 0:
-                    self._logger.warn(f"can not find the prefecture cd. {file_path},branch_id:{branch_id}")
+                    self._logger.warning(f"can not find the prefecture cd. {file_path},branch_id:{branch_id}")
                     break
 
             if not pref_cd:
