@@ -7,7 +7,7 @@
 下記の地方厚生局のWebサイトを解析しているため、そのWebページが変更された場合、動作しなくなる可能性があります。  
 最終確認日:2024-09-10  
 
-最終実行のcsvは output/ にあります。[ダウンロード](/output/202409_all_med_inst_cd.zip)
+最終実行のcsvは output/ にあります。[ダウンロードする](/output/202508_all_med_inst_cd.zip)
 
 
 ## 地方厚生局(link)
@@ -43,7 +43,7 @@
 |010112489|0112489|医療法人 愛全病院|0050813|札幌市南区川沿１３条２丁目１番３８号|
 |...|...|...|...|...|
 
-最終実行(2024-09-10)のcsvは [ここから](/output/202409_all_med_inst_cd.zip) ダウンロードできます. 
+最終実行(2025-08-09)のcsvは [ここから](/output/202508_all_med_inst_cd.zip) ダウンロードできます. 
 
 
 # 位置参照情報
@@ -54,10 +54,13 @@
 
 ## CHANGELOG
 
+### August 9, 2025
+- [東北厚生局のWebページ](https://kouseikyoku.mhlw.go.jp/tohoku/gyomu/gyomu/hoken_kikan/itiran.html)で医療機関コード一覧がTop配置でなくなった.またExcelファイルは都道府県ごとに1ファイルではなく、1ファイルでsheet/都道府県になった.
+
 ### April 7, 2022
 
 - xlrdでxlsxが読めなくなったため、openpyxlを導入
-    xlrd 2.0.0 (11 December 2020): Remove support for anything other than .xls files.
+    >xlrd 2.0.0 (11 December 2020): Remove support for anything other than .xls files.
 
 - xlrdは不要に
     xls形式で公表する地方厚生局がなくなった(すべてxlsx形式になった)
