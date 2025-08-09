@@ -21,7 +21,6 @@ class ExcelParser:
         # else:
         #     setting = {'col_no': 0, 'col_med_cd': 1, 'col_inst_name': 2, 'col_address': 3}
 
-        _, ext = os.path.splitext(file_path)
         parser = ExcelParserXlsx(setting)
         return parser.parse(file_path)
 
@@ -38,28 +37,30 @@ class ExcelParserXlsx:
 
     def parse(self, file_path: str) -> list:
         """
-        Parse the excel file and get med_inst_cd list
+        Parse the excel file and get med_inst_cd list wrapped by each prefecture list.
         """
 
-        self._logger.debug(f"parse excel begin: {file_path}")
+        self._logger.debug(f"parse-excel begin: {file_path}")
 
         wb = openpyxl.load_workbook(file_path, read_only=True)
-        sheet = wb.worksheets[0]
-        # self._logger.debug(sheet.row_values(8))
-        med_list = []
-        for row in sheet.iter_rows():
-            # check 項番col. 項番colのある行に医療機関コード,医療機関名,住所が入ってる
-            cell_no = row[self._setting['col_no']].value
-            if cell_no and cell_no.isdigit():
+        prefecture_med_list = []
+        for sheet in wb.worksheets:
+            # self._logger.debug(sheet.row_values(8))
+            med_list = []
+            for row in sheet.iter_rows():
+                # check 項番col. 項番colのある行に医療機関コード,医療機関名,住所が入ってる
+                cell_no = row[self._setting['col_no']].value
+                if cell_no and cell_no.isdigit():
 
-                med_cd = self._val_cleaner.parse_med_inst_cd(row[self._setting['col_med_cd']].value)
-                inst_name = self._val_cleaner.parse_med_inst_name(row[self._setting['col_inst_name']].value)
-                zip_cd, address = self._val_cleaner.parse_address(row[self._setting['col_address']].value)
+                    med_cd = self._val_cleaner.parse_med_inst_cd(row[self._setting['col_med_cd']].value)
+                    inst_name = self._val_cleaner.parse_med_inst_name(row[self._setting['col_inst_name']].value)
+                    zip_cd, address = self._val_cleaner.parse_address(row[self._setting['col_address']].value)
 
-                med_list.append([med_cd, inst_name, zip_cd, address])
+                    med_list.append([med_cd, inst_name, zip_cd, address])
+            if med_list:
+                prefecture_med_list.append(med_list)
 
-        # self._logger.debug(med_list)
-        return med_list
+        return prefecture_med_list
 
 class ValueCleaner:
     """

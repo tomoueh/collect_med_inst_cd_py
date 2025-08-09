@@ -201,7 +201,8 @@ class GeoCoding:
         Retrieve Geolonia data and return as pd.DataFrame
         """
 
-        # Geolonia住所データ https://geolonia.github.io/japanese-addresses/
+        # Geolonia住所データ
+        # https://geolonia.github.io/japanese-addresses/
         # https://github.com/geolonia/japanese-addresses
 
         pickl_f = r".\tmp_data\geolonia.pickl"
@@ -210,8 +211,6 @@ class GeoCoding:
 
             self._logger.debug("download Geolonia data")
             # Geolonia住所データ
-            # https://geolonia.github.io/japanese-addresses/
-            # https://github.com/geolonia/japanese-addresses
             url = "https://raw.githubusercontent.com/geolonia/japanese-addresses/master/data/latest.csv"
             # geo_f = self._download_to(url, r".\tmp_data")
             geo_f = r".\tmp_data\latest.csv"

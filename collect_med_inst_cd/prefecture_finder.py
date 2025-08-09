@@ -36,7 +36,7 @@ class PrefectureFinder:
                         self._cache[zip_cd] = pref_cd
                         return pref_cd
                     else:
-                        self._logger.info(f"NOT found pref_cd at zipcloud.zip_cd={zip_cd}")
+                        self._logger.info(f"NOT found pref_cd at zipcloud.zip_cd={zip_cd}.try next row.")
                 else:
                     self._logger.error(
                         f"zipcloud res-json: status={result_dict.get('status')},message={result_dict.get('message')}")

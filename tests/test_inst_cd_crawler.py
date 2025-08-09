@@ -17,6 +17,7 @@ class TestMedInstCdCrawler(unittest.TestCase):
         crawler.run(BRANCH_HOKAIDO)
 
     def test_run_tohoku(self):
+        # 2025/8 excelファイルにそれぞれの県のsheetのスタイルになった
         self._logger.debug("start: TOHOKU")
         crawler = MedInstCdCrawler()
         crawler.run(BRANCH_TOHOKU)

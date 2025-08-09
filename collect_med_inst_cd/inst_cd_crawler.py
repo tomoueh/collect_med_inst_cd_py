@@ -82,10 +82,11 @@ class MedInstCdCrawler:
             self._output_file_in_dir(branch_id, unzip_dir, re_patt, out_dir, output_file)
 
         elif re_patt_excel.match(file_path):
-            med_l = self._parse_file(branch_id, file_path)
-            if med_l:
-                self._logger.debug(f"output_csv_append: {file_path}")
-                self._csv_handler.output_csv_append(out_dir, output_file, med_l)
+            prefecture_med_list = self._parse_file(branch_id, file_path)
+            if prefecture_med_list:
+                for (pref_cd, med_l) in prefecture_med_list:
+                    self._logger.debug(f"output_csv_append: (pref_cd:{pref_cd}) {file_path}")
+                    self._csv_handler.output_csv_append(out_dir, output_file, med_l)
 
     def _output_file_in_dir(self, branch_id: str, dir_path: str, file_filter: re.Pattern, out_dir: str, output_file: str) -> None:
 
@@ -96,41 +97,46 @@ class MedInstCdCrawler:
                 self._output_file_in_dir(branch_id, f_path, file_filter, out_dir, output_file)
 
             elif os.path.isfile(f_path) and file_filter.match(f):
-                med_l = self._parse_file(branch_id, f_path)
-                if med_l:
-                    self._logger.debug(f"output_csv_append: {f_path}")
-                    self._csv_handler.output_csv_append(out_dir, output_file, med_l)
+                prefecture_med_list = self._parse_file(branch_id, f_path)
+                if prefecture_med_list:
+                    for (pref_cd, med_l) in prefecture_med_list:
+                        self._logger.debug(f"output_csv_append: (pref_cd:{pref_cd}) {f_path}")
+                        self._csv_handler.output_csv_append(out_dir, output_file, med_l)
 
     def _parse_file(self, branch_id: int, file_path: str) -> list:
         """
         Parse Excel file and create med_inst_cd list. Add 10-digit med_inst_cd to each item of the list.
         """
 
-        # fileはprefecture単位の前提
-        med_l = self._excel_parser.parse(branch_id, file_path)
-        if med_l:
-            # Find the prefecture-cd using first valid zip_cd, add med_inst_cd(9 digit) with its prefecture-cd.
-            # Must be one file for one prefecture.
-            pref_cd = ''
-            retry = 8
-            for med_item in med_l:
-                zip_cd = med_item[2]
-                if zip_cd:
-                    pref_cd = self._pref_finder.find_prefecture_cd(zip_cd)
-                    if pref_cd:
-                        # Add med_inst_cd(9 digit) at the first column
-                        med_l = [[f"{pref_cd:0>2}{item[0]}"]+item for item in med_l]
+        # prefecture単位のlistで取得. excelファイルでprefectureごとにsheetの形式が発生(since 2025/8)
+        prefecture_med_list = self._excel_parser.parse(branch_id, file_path)
+        prefecture_tuple_med_list = []
+        if prefecture_med_list:
+            for med_l in prefecture_med_list:
+                # Find the prefecture-cd using first valid zip_cd, add med_inst_cd(9 digit) with its prefecture-cd.
+                # Must be one file for one prefecture.
+                pref_cd = ''
+                retry = 8
+                for med_item in med_l:
+                    zip_cd = med_item[2]
+                    if zip_cd:
+                        pref_cd = self._pref_finder.find_prefecture_cd(zip_cd)
+                        if pref_cd:
+                            # Add med_inst_cd(9 digit) at the first column
+                            med_l = [[f"{pref_cd:0>2}{item[0]}"]+item for item in med_l]
+                            break
+
+                    retry -= 1
+                    if retry <= 0:
+                        self._logger.warning(f"can not find the prefecture cd. {file_path},branch_id:{branch_id}")
                         break
 
-                retry -= 1
-                if retry <= 0:
-                    self._logger.warning(f"can not find the prefecture cd. {file_path},branch_id:{branch_id}")
-                    break
+                if not pref_cd:
+                    med_l = [[""]+item for item in med_l]
+                
+                prefecture_tuple_med_list.append((pref_cd, med_l))
 
-            if not pref_cd:
-                med_l = [[""]+item for item in med_l]
-
-        return med_l
+        return prefecture_tuple_med_list
 
     def _download_to(self, url: str, dl_dir: str) -> str:
 

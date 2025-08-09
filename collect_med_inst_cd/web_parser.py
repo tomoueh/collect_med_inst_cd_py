@@ -4,7 +4,7 @@ from enum import Enum
 from urllib.parse import urljoin
 
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, NavigableString
 
 from .consts import (BRANCH_CYUGOKU, BRANCH_HOKAIDO, BRANCH_KANTO_SINETU,
                      BRANCH_KINKI, BRANCH_KYUSYU, BRANCH_SHIKOKU,
@@ -65,24 +65,68 @@ class BranchWebpageParser:
         Parse html of the branch page and get urls of med_list files(excel,zip)
         """
 
-        page_type, *_ = self._branch_setting_dict[branch_id]
+        # med_listがhtml page内で1つ目のtableでない特殊な構造の支局.2025/8から発生したのでパッチ的に対応
+        NOT_FIRST_TABLE_BRANCHES = [BRANCH_TOHOKU]
 
+        page_type, *_ = self._branch_setting_dict[branch_id]
         if page_type == WebPageType.TABLE:
-            return self._extract_urls_at_htmltable(branch_id)
+            if branch_id in NOT_FIRST_TABLE_BRANCHES:
+                return self._extract_urls_at_htmltables(branch_id)
+            else:
+                return self._extract_urls_at_first_htmltable(branch_id)
         else:
             return self._extract_urls_at_htmldiv(branch_id)
 
-    def _extract_urls_at_htmltable(self, branch_id: int) -> list:
+    def _extract_urls_at_first_htmltable(self, branch_id: int) -> list:
         """
-        Parse html table of the branch page and get urls of med_list files(excel,zip)
+        Parse the html first table of the branch page. get urls of med_list files(excel,zip)
         """
 
-        _, url, table_class, child_of_tr_attr, href_patt, a_str = self._branch_setting_dict[branch_id]
+        _, url, table_class, _, _, _ = self._branch_setting_dict[branch_id]
 
         res = requests.get(url)
         # https://www.crummy.com/software/BeautifulSoup/bs4/doc/
         soup = BeautifulSoup(res.content, "html.parser")
+
+        # find利用: html page内で1つ目のtableである前提
         table = soup.find("table", table_class) if table_class else soup.find("table")
+        # self._logger.debug(table)
+        href_l = self._extract_urls_from_a_htmltable(branch_id, table)
+
+        if href_l:
+            self._logger.debug(href_l)
+        else:
+            self._logger.warning(f"NOT get link. branch_id:{branch_id}")
+        return href_l
+    
+    def _extract_urls_at_htmltables(self, branch_id: int) -> list:
+        """
+        Parse html tables of the branch page. get urls of med_list files(excel,zip)
+        """
+
+        _, url, table_class, _, _, _ = self._branch_setting_dict[branch_id]
+
+        res = requests.get(url)
+        # https://www.crummy.com/software/BeautifulSoup/bs4/doc/
+        soup = BeautifulSoup(res.content, "html.parser")
+
+        # html page内で1つ目のtableである前提
+        tables = soup.find_all("table", table_class) if table_class else soup.find_all("table")
+        for table in tables:
+            href_l = self._extract_urls_from_a_htmltable(branch_id, table)
+            if href_l:
+                self._logger.debug(href_l)
+                return href_l
+        
+        self._logger.warning(f"NOT get link. branch_id:{branch_id}")
+    
+    def _extract_urls_from_a_htmltable(self, branch_id: int, table: NavigableString) -> list:
+        """
+        Parse a html table and get urls of med_list files(excel,zip)
+        """
+
+        _, url, _, child_of_tr_attr, href_patt, a_str = self._branch_setting_dict[branch_id]
+
         # self._logger.debug(table)
         href_l = []
         tr_l = table.find_all("tr")
@@ -100,7 +144,6 @@ class BranchWebpageParser:
                 if links:
                     href_l += [urljoin(url, link.get("href")) for link in links]
 
-        self._logger.debug(href_l)
         return href_l
 
     def _extract_urls_at_htmldiv(self, branch_id: int) -> list:
@@ -108,7 +151,7 @@ class BranchWebpageParser:
         Parse html divs of the branch page and get urls of med_list files(excel,zip)
         """
 
-        _, url, table_class, child_of_tr_attr, href_patt, a_str = self._branch_setting_dict[branch_id]
+        _, url, _, _, href_patt, a_str = self._branch_setting_dict[branch_id]
 
         res = requests.get(url)
         # https://www.crummy.com/software/BeautifulSoup/bs4/doc/
