@@ -4,11 +4,11 @@ import re
 import shutil
 import zipfile
 from typing import Callable
-from urllib.parse import urljoin
+# from urllib.parse import urljoin
 
 import requests
 
-from .consts import BRANCH_ALL, BRANCH_KYUSYU, BRANCH_LIST
+from .consts import BRANCH_ALL, BRANCH_KYUSYU, BRANCH_LIST, pref_cd_dict
 from .excel_parser import ExcelParser
 from .output_csv_handler import OutputCsvHandler
 from .prefecture_finder import PrefectureFinder
@@ -85,7 +85,7 @@ class MedInstCdCrawler:
             prefecture_med_list = self._parse_file(branch_id, file_path)
             if prefecture_med_list:
                 for (pref_cd, med_l) in prefecture_med_list:
-                    self._logger.debug(f"output_csv_append: (pref_cd:{pref_cd}) {file_path}")
+                    self._logger.debug(f"output_csv_append: (pref:{pref_cd},{pref_cd_dict.get(pref_cd, 'unknown')}) {file_path}")
                     self._csv_handler.output_csv_append(out_dir, output_file, med_l)
 
     def _output_file_in_dir(self, branch_id: str, dir_path: str, file_filter: re.Pattern, out_dir: str, output_file: str) -> None:
@@ -100,7 +100,7 @@ class MedInstCdCrawler:
                 prefecture_med_list = self._parse_file(branch_id, f_path)
                 if prefecture_med_list:
                     for (pref_cd, med_l) in prefecture_med_list:
-                        self._logger.debug(f"output_csv_append: (pref_cd:{pref_cd}) {f_path}")
+                        self._logger.debug(f"output_csv_append: (pref:{pref_cd},{pref_cd_dict.get(pref_cd, 'unknown')}) {f_path}")
                         self._csv_handler.output_csv_append(out_dir, output_file, med_l)
 
     def _parse_file(self, branch_id: int, file_path: str) -> list:
@@ -128,7 +128,7 @@ class MedInstCdCrawler:
 
                     retry -= 1
                     if retry <= 0:
-                        self._logger.warning(f"can not find the prefecture cd. {file_path},branch_id:{branch_id}")
+                        self._logger.warning(f"Can NOT find the prefecture cd. {file_path},branch_id:{branch_id}")
                         break
 
                 if not pref_cd:
